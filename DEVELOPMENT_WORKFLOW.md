@@ -1,139 +1,90 @@
-# CH32V003 Development and Flashing Workflow
+# Development Workflow
 
-This document describes the development, compilation, programming and hardware verification process for the CH32V003J4M6 bare-metal firmware project.
+This project was developed on **Linux Mint** using an Arduino Uno R3 as a SWIO programmer for the WCH CH32V003 microcontroller.
 
-The development was carried out on **Linux Mint**, using the RISC-V GCC toolchain, MounRiver Studio, Arduino Uno-based SWIO programming and the open-source `ch32fun` utilities.
+## 1. Arduino Uno SWIO Programmer Setup
 
-## 1. Development Environment Setup
+1. **Clone the ArduLink source code**
 
-The following tools and resources were used:
+   Downloaded the [Arduino CH32V003 SWIO interface](https://gitlab.com/BlueSyncLine/arduino-ch32v003-swio) source code from GitLab.
 
-| Tool / Resource | Purpose |
-|---|---|
-| Linux Mint | Development operating system |
-| Arduino IDE | Programming the Arduino Uno |
-| Arduino Uno | SWIO programmer interface |
-| ArduLink | Arduino-based SWIO programming firmware |
-| ch32fun | Open-source CH32 development utilities |
-| minichlink | CH32V003 firmware flashing utility |
-| MounRiver Studio | Embedded firmware development IDE |
-| RISC-V GCC Toolchain | Firmware compilation |
-| CH32V003 Datasheet and Reference Manual | Hardware and peripheral reference |
+2. **Install the AVR development toolchain**
 
-## 2. Setting Up the Arduino Uno as an SWIO Programmer
+   Installed AVR-GCC, AVR-libc, AVR binutils, AVRDUDE, and Make.
 
-The Arduino Uno was configured to communicate with the CH32V003 through its Single-Wire Interface (SWIO).
+3. **Compile the ArduLink firmware**
 
-The procedure was:
+   Used the provided Makefile and AVR-GCC to compile the firmware for the ATmega328P microcontroller operating at 16 MHz. This generated `main.elf`.
 
-1. Downloaded the `ch32fun` repository from GitHub.
-2. Installed Arduino IDE on Linux Mint.
-3. Uploaded the ArduLink (Arduino SWIO) firmware to the Arduino Uno.
-4. Built the `minichlink` utility from the `ch32fun` repository for Linux.
-5. Connected the Arduino Uno to the CH32V003 using the SWIO programming interface.
+4. **Flash the Arduino Uno**
 
-The programmer was accessed through the Arduino's serial device, `/dev/ttyACM0`.
+   Used AVRDUDE to upload the compiled firmware to the Arduino Uno R3 through `/dev/ttyACM0`, configuring it to function as a SWIO programmer.
 
-The following command was used to select the ArduLink interface and inspect the programmer/target:
+5. **Establish hardware connections**
 
-```bash
-./minichlink -C ardulink -c /dev/ttyACM0 -i
-```
+   Connected Arduino pin 8 (PB0) to the CH32V003 SWIO pin, with a 1 kΩ series resistor recommended by the ArduLink project. Arduino pin 9 (PB1) was used for target power control.
 
-## 3. Bare-Metal Firmware Development
+## 2. Bare-Metal Application Development
 
-Before developing the application, the CH32V003 datasheet and reference manual were studied to understand the microcontroller architecture and peripheral operation.
+1. **Study the microcontroller documentation**
 
-The main topics investigated included:
+   Referenced the CH32V003 datasheet and reference manual to understand its memory map, clock configuration, GPIO registers, and timer peripherals.
 
-- RISC-V core architecture
-- Memory map and register addressing
-- General Purpose Input/Output (GPIO)
-- Reset and Clock Control (RCC)
-- TIM1 peripheral and timer operation
+2. **Develop the bare-metal application**
 
-An LED blinking application was developed using **bare-metal Embedded C and direct register programming**.
+   Implemented an LED-blinking program in Embedded C using direct memory-mapped register access, without relying on a hardware abstraction layer.
 
-The application was implemented by configuring the required peripheral registers directly rather than relying on a high-level hardware abstraction layer.
+3. **Configure the development environment**
 
-The initial firmware was compiled and tested using a custom build environment.
+   Installed MounRiver Studio and its RISC-V GCC toolchain on Linux Mint.
 
-## 4. MounRiver Studio Project Setup
+4. **Create the CH32V003 project**
 
-MounRiver Studio and the RISC-V GCC Toolchain were installed on Linux Mint.
+   Created a new CH32V003J4M project in MounRiver Studio and integrated the bare-metal application code.
 
-The existing bare-metal application was subsequently migrated into a new CH32V003J4M6 project in MounRiver Studio.
+5. **Build the firmware**
 
-The project included:
+   Compiled the project using the RISC-V GCC toolchain to generate the executable (`.elf`) and binary (`.bin`) firmware outputs.
 
-- Application source code
-- CH32V003 peripheral driver source and header files
-- RISC-V core support files
-- Startup assembly source
-- Linker script
-- Project configuration and debug launch files
+## 3. Firmware Flashing and Hardware Verification
 
-The firmware was compiled using the MounRiver Studio build system, generating the executable and binary output files.
+1. **Configure minichlink**
 
-## 5. Firmware Flashing Using minichlink
+   Built `minichlink` from the [ch32fun repository](https://github.com/cnlohr/ch32fun) on Linux Mint.
 
-The compiled firmware binary was programmed into the CH32V003 using `minichlink` and the Arduino Uno-based ArduLink programmer.
+2. **Connect to the target**
 
-The generated binary was located in the MounRiver project output directory.
+   Used the Arduino Uno running ArduLink as the SWIO interface. Verified programmer communication through minichlink.
 
-The following command was used for programming:
+3. **Flash the application**
 
-```bash
-~/ch32fun/minichlink/minichlink \
--c /dev/ttyACM0 \
--w /path/to/CH32V003J4M.bin \
-flash -b
-```
+   Used minichlink to write the generated CH32V003 binary to the target microcontroller's flash memory.
 
-Command parameters:
+   Example command:
 
-| Parameter | Description |
-|---|---|
-| `minichlink` | Firmware programming utility |
-| `-c /dev/ttyACM0` | Arduino Uno serial interface |
-| `-w` | Specifies the firmware file to write |
-| `CH32V003J4M.bin` | Compiled firmware binary |
-| `flash` | Selects the target flash memory region |
-| `-b` | Reboots the microcontroller after programming |
+   ```bash
+   ~/ch32fun/minichlink/minichlink \
+       -c /dev/ttyACM0 \
+       -w /path/to/CH32V003J4M.bin flash -b
+   ```
 
-The firmware was successfully flashed using this procedure.
+4. **Verify hardware operation**
 
-## 6. Hardware Implementation and Verification
+   Powered the target board and verified the LED-blinking application on the physical CH32V003 hardware.
 
-After programming, the CH32V003J4M6 was tested on a physical breadboard setup.
+## 4. Tools and Technologies
 
-The hardware included:
+- **Operating System:** Linux Mint
+- **Microcontroller:** WCH CH32V003J4M6
+- **Programmer Hardware:** Arduino Uno R3
+- **SWIO Interface:** ArduLink
+- **AVR Toolchain:** AVR-GCC, AVR-libc, AVRDUDE, Make
+- **RISC-V Toolchain:** RISC-V GCC
+- **IDE:** MounRiver Studio
+- **Flashing Utility:** minichlink
+- **Programming Language:** Embedded C
+- **Programming Approach:** Bare-metal register-level programming
 
-- CH32V003J4M6 microcontroller
-- Arduino Uno configured with ArduLink firmware
-- SWIO programming connections
-- External LED and current-limiting resistor
-- Breadboard and connecting wires
+## 5. Outcome
 
-Successful firmware execution was verified by observing the external LED blinking at the expected interval.
-
-The hardware implementation photograph and demonstration video are available in:
-
-- `docs/images/ch32v003-led-blink.jpeg`
-- `docs/videos/ch32v003-led-blink.mp4`
-
-## 7. Development Outcome
-
-Successfully developed, compiled, programmed and tested a bare-metal LED blinking application on the CH32V003J4M6 RISC-V microcontroller.
-
-The project involved direct peripheral register programming, understanding the microcontroller's hardware architecture, using an Arduino Uno as an SWIO programmer, and establishing a Linux-based embedded firmware development workflow.
-
-The implementation demonstrates practical experience with:
-
-- Bare-metal Embedded C
-- RISC-V microcontroller development
-- GPIO and peripheral register programming
-- Timer and clock configuration
-- Linux-based firmware development
-- Open-source embedded development tools
-- Hardware programming and debugging workflows
+Successfully developed, compiled, flashed, and tested a bare-metal LED-blinking application on the CH32V003 microcontroller using direct register programming. The development process involved setting up an open-source SWIO programming solution using an Arduino Uno, configuring the RISC-V development environment, and programming the target through minichlink on Linux Mint.
